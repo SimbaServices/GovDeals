@@ -12,8 +12,10 @@
 # If you are copying files instead, rsync the project to /opt/govdeals
 # then run: sudo /usr/local/sbin/govdeals-bootstrap.sh
 #
-# Dashboard: http://<server-ip>:8765
-# Logs:      journalctl -u govdeals -f
+# Dashboard: http://<server-ip>
+# A DNS A record for a subdomain can point at this address. Nginx on port 80
+# forwards to the app, which listens on 127.0.0.1:8765.
+# Logs: journalctl -u govdeals -f
 #
 
 package_update: true
@@ -27,6 +29,7 @@ packages:
   - ufw
   - curl
   - ca-certificates
+  - nginx
 
 users:
   - default
@@ -41,7 +44,7 @@ write_files:
     owner: root:root
     permissions: "0640"
     content: |
-      GOVDEALS_HOST=0.0.0.0
+      GOVDEALS_HOST=127.0.0.1
       GOVDEALS_PORT=8765
       GOVDEALS_SCRAPE_HOURS=4
       GOVDEALS_HOOK_POLL_SECONDS=30
@@ -100,6 +103,25 @@ write_files:
       [Install]
       WantedBy=multi-user.target
 
+  - path: /etc/nginx/sites-available/govdeals
+    owner: root:root
+    permissions: "0644"
+    content: |
+      server {
+          listen 80 default_server;
+          listen [::]:80 default_server;
+          server_name _;
+
+          location / {
+              proxy_pass http://127.0.0.1:8765;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+          }
+      }
+
   - path: /usr/local/sbin/govdeals-bootstrap.sh
     owner: root:root
     permissions: "0755"
@@ -155,9 +177,15 @@ write_files:
 
       if command -v ufw >/dev/null 2>&1; then
         ufw allow OpenSSH
-        ufw allow 8765/tcp
+        ufw allow 80/tcp
         ufw --force enable
       fi
+
+      rm -f /etc/nginx/sites-enabled/default
+      ln -sf /etc/nginx/sites-available/govdeals /etc/nginx/sites-enabled/govdeals
+      nginx -t
+      systemctl enable nginx
+      systemctl restart nginx
 
       systemctl daemon-reload
       systemctl enable govdeals.service
@@ -174,4 +202,4 @@ final_message: |
   If the app was present or cloned, the service is enabled and will keep running.
   Check: systemctl status govdeals
   Logs:  journalctl -u govdeals -f
-  UI:    http://<this-host>:8765
+  UI:    http://<this-host>
