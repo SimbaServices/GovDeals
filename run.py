@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 
 from app.db import init_db
 from app.hooks import assign_hooks_for_active, fire_due_hooks
@@ -10,6 +11,7 @@ from app.web import serve
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     parser = argparse.ArgumentParser(description="GovDeals skid steer and 5k forklift tracker")
     parser.add_argument(
         "command",
