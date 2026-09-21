@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{{ listing.title }} · GovDeals Tracker{% endblock %}
+{% block content %}
+<article class="detail">
+  <p class="crumb"><a href="/">Listings</a> / {{ listing.title }}</p>
+  <header class="detail-head">
+    <div>
+      <h1>{{ listing.title }}</h1>
+      <p class="sub">
+        {{ listing.year or '' }} {{ listing.make or '' }} {{ listing.model or '' }}
+        · {{ listing.seller or 'Unknown seller' }}
+        · {{ listing.location_city or '' }} {{ listing.location_state or '' }}
+      </p>
+    </div>
+    <div class="price-box">
+      <span>{{ 'Final price' if listing.status == 'ended' else 'Current bid' }}</span>
+      <strong>
+        {% set shown = listing.final_price if listing.status == 'ended' and listing.final_price is not none else listing.current_price %}
+        {% if shown is not none %}${{ '%.0f'|format(shown) }}{% else %}—{% endif %}
+      </strong>
+      <em>{{ listing.time_remaining or listing.status }}</em>
+    </div>
+  </header>
+
+  <p><a class="external" href="{{ listing.url }}" target="_blank" rel="noreferrer">Open on GovDeals</a></p>
+
+  <section>
+    <h2>Description</h2>
+    <p class="description">{{ listing.description or 'No description captured yet. Run a scan to pull lot details.' }}</p>
+  </section>
+
+  <section>
+    <h2>Final 2-hour hooks</h2>
+    <p class="meta">One hook is assigned for every 30 minutes in the last two hours, plus a close hook that stores the final price.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Hook</th>
+            <th>Scheduled (UTC)</th>
+            <th>Status</th>
+            <th>Price</th>
+            <th>Time left at fire</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for hook in hooks %}
+          <tr>
+            <td>{{ hook.hook_name }}</td>
+            <td>{{ hook.scheduled_at }}</td>
+            <td class="status-{{ hook.status }}">{{ hook.status }}</td>
+            <td>{% if hook.price is not none %}${{ '%.0f'|format(hook.price) }}{% else %}—{% endif %}</td>
+            <td>{{ hook.time_remaining or '—' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="empty">Hooks are assigned once the auction end time is known.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Price history</h2>
+    <canvas id="price-chart" height="120"></canvas>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Source</th>
+            <th>Price</th>
+            <th>Time left</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for snap in snapshots|reverse %}
+          <tr>
+            <td>{{ snap.scraped_at }}</td>
+            <td>{{ snap.source }}</td>
+            <td>{% if snap.price is not none %}${{ '%.0f'|format(snap.price) }}{% else %}—{% endif %}</td>
+            <td>{{ snap.time_remaining or '—' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="empty">No snapshots yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</article>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+  const snapshots = {{ snapshots | tojson }};
+  const ctx = document.getElementById("price-chart");
+  if (ctx && snapshots.length) {
+    new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: snapshots.map(s => s.scraped_at),
+        datasets: [{
+          label: "Bid",
+          data: snapshots.map(s => s.price),
+          borderColor: "#d4a017",
+          backgroundColor: "rgba(212, 160, 23, 0.15)",
+          tension: 0.25,
+          fill: true
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: "#9aa3ad", maxTicksLimit: 6 }, grid: { color: "#243040" } },
+          y: { ticks: { color: "#9aa3ad" }, grid: { color: "#243040" } }
+        }
+      }
+    });
+  }
+</script>
+{% endblock %}

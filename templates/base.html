@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}GovDeals Tracker{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">GovDeals Tracker</a>
+    <nav>
+      <a href="/">Listings</a>
+      <a href="/hooks">Auction hooks</a>
+    </nav>
+    <div class="actions">
+      <form method="post" action="/actions/scrape">
+        <button type="submit">Scan now</button>
+      </form>
+      <form method="post" action="/actions/hooks">
+        <button type="submit" class="ghost">Fire due hooks</button>
+      </form>
+    </div>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

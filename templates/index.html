@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Listings · GovDeals Tracker{% endblock %}
+{% block content %}
+<section class="stats">
+  <article>
+    <span>Active skid steers</span>
+    <strong>{{ stats.skid_active }}</strong>
+  </article>
+  <article>
+    <span>Active 5k forklifts</span>
+    <strong>{{ stats.fork_active }}</strong>
+  </article>
+  <article>
+    <span>In final 2 hours</span>
+    <strong>{{ stats.ending_soon }}</strong>
+  </article>
+  <article>
+    <span>Hooks pending / fired</span>
+    <strong>{{ stats.hooks_pending }} / {{ stats.hooks_fired }}</strong>
+  </article>
+</section>
+
+<p class="meta">
+  Catalog scans run every {{ scrape_hours|int }} hours.
+  Each listing in its last 2 hours gets its own hooks at 2:00, 1:30, 1:00, 0:30, and close.
+  {% if stats.last_run %}
+    Last scan {{ stats.last_run.finished_at }} · {{ stats.last_run.listings_upserted }} listings updated
+    · {{ stats.last_run.hooks_assigned }} hooks assigned.
+  {% else %}
+    No scans yet. Use Scan now to pull current auctions.
+  {% endif %}
+</p>
+
+<form class="filters" method="get">
+  <label>
+    Category
+    <select name="category" onchange="this.form.submit()">
+      <option value="all" {% if category == 'all' %}selected{% endif %}>All</option>
+      <option value="skid_steer" {% if category == 'skid_steer' %}selected{% endif %}>Skid steers</option>
+      <option value="forklift_5k" {% if category == 'forklift_5k' %}selected{% endif %}>5k forklifts</option>
+    </select>
+  </label>
+  <label>
+    Status
+    <select name="status" onchange="this.form.submit()">
+      <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+      <option value="ended" {% if status == 'ended' %}selected{% endif %}>Ended</option>
+      <option value="all" {% if status == 'all' %}selected{% endif %}>All</option>
+    </select>
+  </label>
+</form>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Category</th>
+        <th>Price</th>
+        <th>Time left</th>
+        <th>Auction end</th>
+        <th>Hooks</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for listing in listings %}
+      <tr class="{% if listing.in_final_window %}hot{% endif %} {% if listing.status == 'ended' %}ended{% endif %}">
+        <td>
+          <a href="/listing/{{ listing.id }}">{{ listing.title }}</a>
+          <div class="sub">{{ listing.year or '' }} {{ listing.make or '' }} {{ listing.model or '' }} · {{ listing.location_city or '' }} {{ listing.location_state or '' }}</div>
+        </td>
+        <td>{{ 'Skid steer' if listing.watch_category == 'skid_steer' else '5k forklift' }}</td>
+        <td class="money">
+          {% if listing.status == 'ended' and listing.final_price is not none %}
+            ${{ '%.0f'|format(listing.final_price) }} <span class="sub">final</span>
+          {% elif listing.current_price is not none %}
+            ${{ '%.0f'|format(listing.current_price) }}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+        <td>
+          {% if listing.status == 'ended' %}
+            Ended
+          {% elif listing.minutes_left is not none %}
+            {% if listing.minutes_left >= 1440 %}
+              {{ (listing.minutes_left // 1440) }}d {{ (listing.minutes_left % 1440) // 60 }}h
+            {% elif listing.minutes_left >= 60 %}
+              {{ listing.minutes_left // 60 }}h {{ listing.minutes_left % 60 }}m
+            {% elif listing.minutes_left >= 0 %}
+              {{ listing.minutes_left }}m
+            {% else %}
+              Closing
+            {% endif %}
+          {% else %}
+            {{ listing.time_remaining or '—' }}
+          {% endif %}
+        </td>
+        <td>{{ listing.auction_end or listing.auction_end_utc or '—' }}</td>
+        <td>{% if listing.hooks_assigned %}Assigned{% else %}Waiting{% endif %}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" class="empty">No listings in this view yet.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
