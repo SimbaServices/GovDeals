@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import os
+import sqlite3
+import tempfile
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.background import BackgroundTask
 
 from app.config import HOST, PORT, ROOT, SCRAPE_INTERVAL_HOURS
 from app.db import get_db, init_db, rows_to_dicts
@@ -176,6 +180,23 @@ def create_app(enable_scheduler: bool = True) -> FastAPI:
         assign_hooks_for_active()
         fire_due_hooks()
         return RedirectResponse("/hooks", status_code=303)
+
+    @app.get("/download/database")
+    def download_database():
+        tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+        tmp.close()
+        dest = sqlite3.connect(tmp.name)
+        try:
+            with get_db() as src:
+                src.backup(dest)
+        finally:
+            dest.close()
+        return FileResponse(
+            tmp.name,
+            filename="govdeals.db",
+            media_type="application/vnd.sqlite3",
+            background=BackgroundTask(os.unlink, tmp.name),
+        )
 
     @app.get("/api/listings")
     def api_listings():

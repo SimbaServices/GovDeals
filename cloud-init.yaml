@@ -6,7 +6,9 @@
 # create the VM (Ubuntu 22.04 or 24.04). After first boot the tracker runs
 # as a systemd service and restarts on failure and on reboot.
 #
-# Before launch, set GOVDEALS_REPO below if the project lives in git.
+# First boot clones git@github.com:SimbaServices/GovDeals.git.
+# Install the read-only deploy private key at /root/.ssh/govdeals_deploy
+# (mode 600) before launch. Do not put that key in this file.
 # If you are copying files instead, rsync the project to /opt/govdeals
 # then run: sudo /usr/local/sbin/govdeals-bootstrap.sh
 #
@@ -51,11 +53,27 @@ write_files:
     owner: root:root
     permissions: "0644"
     content: |
-      # Set this to your git remote to clone on first boot.
+      # SSH remote so first boot authenticates with the read-only deploy key.
       # Leave empty if you will rsync the project to /opt/govdeals.
-      GOVDEALS_REPO=https://github.com/SimbaServices/GovDeals.git
+      GOVDEALS_REPO=git@github.com:SimbaServices/GovDeals.git
       GOVDEALS_BRANCH=main
       GOVDEALS_APP_DIR=/opt/govdeals
+
+  - path: /root/.ssh/config
+    owner: root:root
+    permissions: "0600"
+    content: |
+      Host github.com
+        HostName github.com
+        User git
+        IdentityFile /root/.ssh/govdeals_deploy
+        IdentitiesOnly yes
+
+  - path: /root/.ssh/known_hosts
+    owner: root:root
+    permissions: "0644"
+    content: |
+      github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
 
   - path: /etc/systemd/system/govdeals.service
     owner: root:root
@@ -94,6 +112,10 @@ write_files:
       APP_DIR="${GOVDEALS_APP_DIR:-/opt/govdeals}"
       REPO="${GOVDEALS_REPO:-}"
       BRANCH="${GOVDEALS_BRANCH:-main}"
+
+      if [ -f /root/.ssh/govdeals_deploy ]; then
+        export GIT_SSH_COMMAND="ssh -i /root/.ssh/govdeals_deploy -o IdentitiesOnly=yes -o UserKnownHostsFile=/root/.ssh/known_hosts"
+      fi
 
       id govdeals >/dev/null 2>&1 || useradd --system --home "$APP_DIR" --shell /usr/sbin/nologin govdeals
       mkdir -p "$APP_DIR" "$APP_DIR/data"
@@ -142,6 +164,9 @@ write_files:
       systemctl restart govdeals.service
 
 runcmd:
+  - mkdir -p /root/.ssh
+  - chmod 700 /root/.ssh
+  - bash -c 'if [ -f /root/.ssh/govdeals_deploy ]; then chmod 600 /root/.ssh/govdeals_deploy /root/.ssh/config; fi'
   - /usr/local/sbin/govdeals-bootstrap.sh
 
 final_message: |

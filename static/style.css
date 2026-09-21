@@ -28,7 +28,9 @@ button {
   background: var(--accent); color: #1a1404; border: 0; border-radius: 6px;
   padding: 0.45rem 0.8rem; font-weight: 700; cursor: pointer;
 }
-button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+button.ghost, a.button { background: transparent; color: var(--text); border: 1px solid var(--line); }
+a.button { border-radius: 6px; padding: 0.45rem 0.8rem; font-weight: 700; }
+a.button:hover { text-decoration: none; }
 
 main { padding: 1.25rem 1.4rem 3rem; max-width: 1280px; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.8rem; margin-bottom: 1rem; }
