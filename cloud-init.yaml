@@ -12,9 +12,10 @@
 # If you are copying files instead, rsync the project to /opt/govdeals
 # then run: sudo /usr/local/sbin/govdeals-bootstrap.sh
 #
-# Dashboard: http://<server-ip>
-# A DNS A record for a subdomain can point at this address. Nginx on port 80
-# forwards to the app, which listens on 127.0.0.1:8765.
+# Dashboard: https://<server-ip>
+# Nginx redirects port 80 to 443. Let's Encrypt issues a short-lived
+# certificate for the public IP and renews it twice a day.
+# A subdomain still needs its own name on the certificate after DNS points here.
 # Logs: journalctl -u govdeals -f
 #
 
@@ -112,6 +113,11 @@ write_files:
           listen [::]:80 default_server;
           server_name _;
 
+          location ^~ /.well-known/acme-challenge/ {
+              root /var/www/acme;
+              default_type "text/plain";
+          }
+
           location / {
               proxy_pass http://127.0.0.1:8765;
               proxy_http_version 1.1;
@@ -178,14 +184,97 @@ write_files:
       if command -v ufw >/dev/null 2>&1; then
         ufw allow OpenSSH
         ufw allow 80/tcp
+        ufw allow 443/tcp
         ufw --force enable
       fi
 
+      mkdir -p /var/www/acme/.well-known/acme-challenge
       rm -f /etc/nginx/sites-enabled/default
       ln -sf /etc/nginx/sites-available/govdeals /etc/nginx/sites-enabled/govdeals
       nginx -t
       systemctl enable nginx
       systemctl restart nginx
+
+      if [ ! -x /opt/certbot/bin/certbot ]; then
+        python3 -m venv /opt/certbot
+        /opt/certbot/bin/pip install --upgrade pip
+        /opt/certbot/bin/pip install "certbot>=5.4"
+      fi
+
+      PUBLIC_IP="$(curl -4 -fsS https://ifconfig.me || true)"
+      if [ -n "$PUBLIC_IP" ]; then
+        /opt/certbot/bin/certbot certonly \
+          --webroot \
+          --webroot-path /var/www/acme \
+          --ip-address "$PUBLIC_IP" \
+          --preferred-profile shortlived \
+          --non-interactive \
+          --agree-tos \
+          --register-unsafely-without-email \
+          --keep-until-expiring
+        cat > /etc/nginx/sites-available/govdeals <<EOF
+      server {
+          listen 80 default_server;
+          listen [::]:80 default_server;
+          server_name _;
+
+          location ^~ /.well-known/acme-challenge/ {
+              root /var/www/acme;
+              default_type "text/plain";
+          }
+
+          location / {
+              return 301 https://\$host\$request_uri;
+          }
+      }
+
+      server {
+          listen 443 ssl default_server;
+          listen [::]:443 ssl default_server;
+          http2 on;
+          server_name _;
+
+          ssl_certificate /etc/letsencrypt/live/${PUBLIC_IP}/fullchain.pem;
+          ssl_certificate_key /etc/letsencrypt/live/${PUBLIC_IP}/privkey.pem;
+          ssl_protocols TLSv1.2 TLSv1.3;
+
+          location / {
+              proxy_pass http://127.0.0.1:8765;
+              proxy_http_version 1.1;
+              proxy_set_header Host \$host;
+              proxy_set_header X-Real-IP \$remote_addr;
+              proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto \$scheme;
+          }
+      }
+      EOF
+        nginx -t
+        systemctl restart nginx
+      fi
+
+      cat > /etc/systemd/system/certbot-renew.service <<'EOF'
+      [Unit]
+      Description=Renew Let's Encrypt certificates
+      After=network-online.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/opt/certbot/bin/certbot renew --quiet --deploy-hook "systemctl reload nginx"
+      EOF
+      cat > /etc/systemd/system/certbot-renew.timer <<'EOF'
+      [Unit]
+      Description=Renew Let's Encrypt certificates twice a day
+
+      [Timer]
+      OnCalendar=*-*-* 00,12:00:00
+      RandomizedDelaySec=1h
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+      EOF
+      systemctl daemon-reload
+      systemctl enable --now certbot-renew.timer
 
       systemctl daemon-reload
       systemctl enable govdeals.service
@@ -202,4 +291,4 @@ final_message: |
   If the app was present or cloned, the service is enabled and will keep running.
   Check: systemctl status govdeals
   Logs:  journalctl -u govdeals -f
-  UI:    http://<this-host>
+  UI:    https://<this-host>
