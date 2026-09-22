@@ -1,6 +1,6 @@
 # GovDeals Equipment Tracker
 
-Tracks **skid steer** and **5,000 lb forklift** auctions on [GovDeals](https://www.govdeals.com). It scans the live catalog several times a day, stores item / description / price / time remaining (including the final price), and assigns **individual hooks every 30 minutes in the last 2 hours** of each auction.
+Tracks **skid steer** and **5,000 lb forklift** auctions on [GovDeals](https://www.govdeals.com). It scans the live catalog several times a day, stores item / description / price / time remaining (including the final price), and assigns **individual hooks through the last 2 hours** of each auction.
 
 ## What it stores
 
@@ -9,7 +9,7 @@ Tracks **skid steer** and **5,000 lb forklift** auctions on [GovDeals](https://w
 - Current bid and a price history
 - Time remaining and auction end
 - Final price when the lot closes
-- Five per-lot hooks: `t_minus_2h`, `t_minus_1h30m`, `t_minus_1h`, `t_minus_30m`, `final_close`
+- Eight per-lot hooks: `t_minus_2h`, `t_minus_1h30m`, `t_minus_1h`, `t_minus_30m`, `t_minus_15m`, `t_minus_5m`, `t_minus_1m`, `final_close`
 
 ## Run it
 

@@ -22,7 +22,7 @@
 
 <p class="meta">
   Catalog scans run every {{ scrape_hours|int }} hours.
-  Each listing in its last 2 hours gets its own hooks at 2:00, 1:30, 1:00, 0:30, and close.
+  Each listing in its last 2 hours gets its own hooks at 2:00, 1:30, 1:00, 0:30, 0:15, 0:05, 0:01, and close.
   {% if stats.last_run %}
     Last scan {{ stats.last_run.finished_at }} · {{ stats.last_run.listings_upserted }} listings updated
     · {{ stats.last_run.hooks_assigned }} hooks assigned.

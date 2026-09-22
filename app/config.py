@@ -35,8 +35,8 @@ REQUEST_PAUSE_SECONDS = float(os.environ.get("GOVDEALS_REQUEST_PAUSE", "0.45"))
 DETAIL_PAUSE_SECONDS = float(os.environ.get("GOVDEALS_DETAIL_PAUSE", "0.55"))
 PAGE_SIZE = 120
 
-# Individual hooks at each 30-minute mark in the final 2 hours, plus close.
-HOOK_OFFSETS_MINUTES = (120, 90, 60, 30, 0)
+# Hooks in the final 2 hours, then a tighter countdown through close.
+HOOK_OFFSETS_MINUTES = (120, 90, 60, 30, 15, 5, 1, 0)
 HOOK_FIRE_GRACE_MINUTES = 12
 
 WEBHOOK_URL = os.environ.get("GOVDEALS_WEBHOOK_URL", "").strip()

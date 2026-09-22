@@ -24,6 +24,8 @@ def parse_end(value: str | None) -> datetime | None:
 def hook_name(minutes_before_end: int) -> str:
     if minutes_before_end == 0:
         return "final_close"
+    if minutes_before_end < 60:
+        return f"t_minus_{minutes_before_end}m"
     hours, minutes = divmod(minutes_before_end, 60)
     if minutes:
         return f"t_minus_{hours}h{minutes:02d}m"
