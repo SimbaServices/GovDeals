@@ -11,14 +11,41 @@
   let index = 0;
   let lastFocus = null;
 
+  function overlayOn() {
+    root.removeAttribute("hidden");
+    root.classList.add("is-open");
+    root.style.position = "fixed";
+    root.style.top = "0";
+    root.style.right = "0";
+    root.style.bottom = "0";
+    root.style.left = "0";
+    root.style.zIndex = "9999";
+    root.style.display = "flex";
+    root.style.alignItems = "center";
+    root.style.justifyContent = "center";
+    root.style.padding = "1.5rem";
+    document.body.classList.add("slideshow-open");
+    document.body.style.overflow = "hidden";
+  }
+
+  function overlayOff() {
+    root.classList.remove("is-open");
+    root.setAttribute("hidden", "");
+    root.style.display = "none";
+    document.body.classList.remove("slideshow-open");
+    document.body.style.overflow = "";
+  }
+
   function render() {
     if (!urls.length) return;
     image.src = urls[index];
     image.alt = title.textContent ? title.textContent + " photo " + (index + 1) : "Listing photo";
     caption.textContent = index + 1 + " / " + urls.length;
     const many = urls.length > 1;
-    prev.hidden = !many;
-    next.hidden = !many;
+    prev.disabled = !many;
+    next.disabled = !many;
+    prev.style.visibility = many ? "visible" : "hidden";
+    next.style.visibility = many ? "visible" : "hidden";
   }
 
   function open(nextUrls, heading) {
@@ -26,16 +53,14 @@
     index = 0;
     lastFocus = document.activeElement;
     title.textContent = heading || "";
-    root.hidden = false;
-    document.body.classList.add("slideshow-open");
+    overlayOn();
     render();
     root.querySelector(".slideshow-close").focus();
   }
 
   function close() {
-    if (root.hidden) return;
-    root.hidden = true;
-    document.body.classList.remove("slideshow-open");
+    if (!root.classList.contains("is-open")) return;
+    overlayOff();
     image.removeAttribute("src");
     urls = [];
     if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
@@ -55,6 +80,8 @@
       return [];
     }
   }
+
+  overlayOff();
 
   document.addEventListener("click", function (event) {
     const trigger = event.target.closest("[data-slideshow]");
@@ -82,7 +109,7 @@
   });
 
   document.addEventListener("keydown", function (event) {
-    if (root.hidden) return;
+    if (!root.classList.contains("is-open")) return;
     if (event.key === "Escape") close();
     if (event.key === "ArrowLeft") step(-1);
     if (event.key === "ArrowRight") step(1);

@@ -4,7 +4,23 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}GovDeals Tracker{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=4">
+  <style>
+    .slideshow {
+      position: fixed !important;
+      top: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      z-index: 9999 !important;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      box-sizing: border-box;
+    }
+    .slideshow.is-open { display: flex !important; }
+  </style>
 </head>
 <body>
   <header class="topbar">
@@ -35,12 +51,14 @@
       </div>
       <div class="slideshow-stage">
         <button type="button" class="slideshow-nav" data-slideshow-prev aria-label="Previous photo">‹</button>
-        <img data-slideshow-image alt="">
+        <div class="slideshow-well">
+          <img data-slideshow-image alt="">
+        </div>
         <button type="button" class="slideshow-nav" data-slideshow-next aria-label="Next photo">›</button>
       </div>
       <p class="slideshow-caption" data-slideshow-caption></p>
     </div>
   </div>
-  <script src="/static/slideshow.js"></script>
+  <script src="/static/slideshow.js?v=4"></script>
 </body>
 </html>
