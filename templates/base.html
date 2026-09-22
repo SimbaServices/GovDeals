@@ -26,5 +26,21 @@
   <main>
     {% block content %}{% endblock %}
   </main>
+  <div id="slideshow" class="slideshow" hidden>
+    <button type="button" class="slideshow-backdrop" data-slideshow-close aria-label="Close photos"></button>
+    <div class="slideshow-dialog" role="dialog" aria-modal="true" aria-labelledby="slideshow-heading">
+      <div class="slideshow-top">
+        <h2 id="slideshow-heading" data-slideshow-heading></h2>
+        <button type="button" class="slideshow-close" data-slideshow-close>Close</button>
+      </div>
+      <div class="slideshow-stage">
+        <button type="button" class="slideshow-nav" data-slideshow-prev aria-label="Previous photo">‹</button>
+        <img data-slideshow-image alt="">
+        <button type="button" class="slideshow-nav" data-slideshow-next aria-label="Next photo">›</button>
+      </div>
+      <p class="slideshow-caption" data-slideshow-caption></p>
+    </div>
+  </div>
+  <script src="/static/slideshow.js"></script>
 </body>
 </html>

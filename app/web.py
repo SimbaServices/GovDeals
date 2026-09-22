@@ -75,7 +75,6 @@ def create_app(enable_scheduler: bool = True) -> FastAPI:
             photos = images_by_listing(conn, [row["id"] for row in listings])
             for row in listings:
                 row["images"] = photos.get(row["id"], [])
-                row["thumb"] = row["images"][0]["url"] if row["images"] else None
             stats = {
                 "skid_active": conn.execute(
                     "SELECT COUNT(*) FROM listings WHERE watch_category='skid_steer' AND status='active'"
@@ -174,6 +173,9 @@ def create_app(enable_scheduler: bool = True) -> FastAPI:
                     params,
                 ).fetchall()
             )
+            photos = images_by_listing(conn, [row["listing_id"] for row in hooks])
+            for row in hooks:
+                row["images"] = photos.get(row["listing_id"], [])
         return templates.TemplateResponse(
             "hooks.html",
             {"request": request, "hooks": hooks, "hook_status": hook_status},

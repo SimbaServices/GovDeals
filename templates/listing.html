@@ -22,20 +22,12 @@
     </div>
   </header>
 
-  <p><a class="external" href="{{ listing.url }}" target="_blank" rel="noopener noreferrer">Open on GovDeals</a></p>
-
-  {% if listing.images %}
-  <section>
-    <h2>Photos</h2>
-    <div class="gallery">
-      {% for image in listing.images %}
-      <a href="{{ image.url }}" target="_blank" rel="noopener noreferrer">
-        <img src="{{ image.url }}" alt="{{ listing.title }} photo {{ loop.index }}">
-      </a>
-      {% endfor %}
-    </div>
-  </section>
-  {% endif %}
+  <p>
+    <a class="external" href="{{ listing.url }}" target="_blank" rel="noopener noreferrer">Open on GovDeals</a>
+    {% if listing.images %}
+    <a class="external photos-link" href="#photos" data-slideshow="{{ listing.images | map(attribute='url') | list | tojson | forceescape }}" data-slideshow-title="{{ listing.title | e }}">Photos ({{ listing.images|length }})</a>
+    {% endif %}
+  </p>
 
   <section>
     <h2>Description</h2>
