@@ -36,8 +36,8 @@
         <td>{{ hook.scheduled_at }}</td>
         <td>{{ hook.hook_name }}</td>
         <td>
-          <a href="/listing/{{ hook.listing_id }}">{{ hook.title }}</a>
-          <div class="sub">{{ 'Skid steer' if hook.watch_category == 'skid_steer' else '5k forklift' }}</div>
+          <a href="{{ hook.url }}" target="_blank" rel="noopener noreferrer">{{ hook.title }}</a>
+          <div class="sub">{{ 'Skid steer' if hook.watch_category == 'skid_steer' else '5k forklift' }} · <a href="/listing/{{ hook.listing_id }}">Price history</a></div>
         </td>
         <td class="status-{{ hook.status }}">{{ hook.status }}</td>
         <td>{% if hook.price is not none %}${{ '%.0f'|format(hook.price) }}{% else %}—{% endif %}</td>

@@ -80,11 +80,23 @@ CREATE TABLE IF NOT EXISTS scrape_runs (
     error TEXT
 );
 
+CREATE TABLE IF NOT EXISTS listing_images (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    listing_id INTEGER NOT NULL,
+    source_url TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    sort_order INTEGER NOT NULL,
+    downloaded_at TEXT NOT NULL,
+    UNIQUE(listing_id, source_url),
+    FOREIGN KEY(listing_id) REFERENCES listings(id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_listings_status ON listings(status);
 CREATE INDEX IF NOT EXISTS idx_listings_category ON listings(watch_category);
 CREATE INDEX IF NOT EXISTS idx_listings_end ON listings(auction_end_utc);
 CREATE INDEX IF NOT EXISTS idx_hooks_status ON auction_hooks(status, scheduled_at);
 CREATE INDEX IF NOT EXISTS idx_snapshots_listing ON price_snapshots(listing_id, scraped_at);
+CREATE INDEX IF NOT EXISTS idx_images_listing ON listing_images(listing_id, sort_order);
 """
 
 

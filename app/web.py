@@ -11,9 +11,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.background import BackgroundTask
 
-from app.config import HOST, PORT, ROOT, SCRAPE_INTERVAL_HOURS
+from app.config import HOST, IMAGE_DIR, PORT, ROOT, SCRAPE_INTERVAL_HOURS
 from app.db import get_db, init_db, rows_to_dicts
 from app.hooks import assign_hooks_for_active, fire_due_hooks
+from app.images import image_path, images_by_listing, images_for_listing
 from app.scheduler import start_scheduler
 from app.scraper import scrape_once
 
@@ -44,6 +45,7 @@ def _decorate(listing: dict) -> dict:
 def create_app(enable_scheduler: bool = True) -> FastAPI:
     init_db()
     app = FastAPI(title="GovDeals Equipment Tracker")
+    IMAGE_DIR.mkdir(parents=True, exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(ROOT / "static")), name="static")
 
     @app.on_event("startup")
@@ -70,6 +72,10 @@ def create_app(enable_scheduler: bool = True) -> FastAPI:
         """
         with get_db() as conn:
             listings = [_decorate(row) for row in rows_to_dicts(conn.execute(sql, params).fetchall())]
+            photos = images_by_listing(conn, [row["id"] for row in listings])
+            for row in listings:
+                row["images"] = photos.get(row["id"], [])
+                row["thumb"] = row["images"][0]["url"] if row["images"] else None
             stats = {
                 "skid_active": conn.execute(
                     "SELECT COUNT(*) FROM listings WHERE watch_category='skid_steer' AND status='active'"
@@ -135,11 +141,14 @@ def create_app(enable_scheduler: bool = True) -> FastAPI:
                     (listing_id,),
                 ).fetchall()
             )
+            photos = images_for_listing(conn, listing_id)
+        decorated = _decorate(dict(listing))
+        decorated["images"] = photos
         return templates.TemplateResponse(
             "listing.html",
             {
                 "request": request,
-                "listing": _decorate(dict(listing)),
+                "listing": decorated,
                 "snapshots": snapshots,
                 "hooks": hooks,
             },
@@ -206,6 +215,13 @@ def create_app(enable_scheduler: bool = True) -> FastAPI:
     @app.get("/api/health")
     def health():
         return {"ok": True}
+
+    @app.get("/media/{listing_id}/{filename}")
+    def listing_image(listing_id: int, filename: str):
+        path = image_path(listing_id, filename)
+        if path is None or not path.is_file():
+            return HTMLResponse("Image not found", status_code=404)
+        return FileResponse(path)
 
     return app
 

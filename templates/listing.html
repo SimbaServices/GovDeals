@@ -5,7 +5,7 @@
   <p class="crumb"><a href="/">Listings</a> / {{ listing.title }}</p>
   <header class="detail-head">
     <div>
-      <h1>{{ listing.title }}</h1>
+      <h1><a href="{{ listing.url }}" target="_blank" rel="noopener noreferrer">{{ listing.title }}</a></h1>
       <p class="sub">
         {{ listing.year or '' }} {{ listing.make or '' }} {{ listing.model or '' }}
         · {{ listing.seller or 'Unknown seller' }}
@@ -22,7 +22,20 @@
     </div>
   </header>
 
-  <p><a class="external" href="{{ listing.url }}" target="_blank" rel="noreferrer">Open on GovDeals</a></p>
+  <p><a class="external" href="{{ listing.url }}" target="_blank" rel="noopener noreferrer">Open on GovDeals</a></p>
+
+  {% if listing.images %}
+  <section>
+    <h2>Photos</h2>
+    <div class="gallery">
+      {% for image in listing.images %}
+      <a href="{{ image.url }}" target="_blank" rel="noopener noreferrer">
+        <img src="{{ image.url }}" alt="{{ listing.title }} photo {{ loop.index }}">
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 
   <section>
     <h2>Description</h2>

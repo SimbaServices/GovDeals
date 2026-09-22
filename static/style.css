@@ -63,6 +63,14 @@ section { margin: 1.4rem 0; }
 .status-fired { color: #7dcea0; }
 .status-missed { color: #e07a7a; }
 .external { display: inline-block; margin-bottom: 0.6rem; }
+.item-cell { display: flex; gap: 0.75rem; align-items: flex-start; }
+.thumb { display: block; flex: 0 0 72px; }
+.thumb img, .gallery img {
+  width: 72px; height: 72px; object-fit: cover; border-radius: 6px;
+  border: 1px solid var(--line); background: #0c1118; display: block;
+}
+.gallery { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.gallery img { width: 140px; height: 140px; }
 
 @media (max-width: 720px) {
   .topbar, .detail-head { flex-direction: column; align-items: flex-start; }

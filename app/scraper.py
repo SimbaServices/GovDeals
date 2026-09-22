@@ -25,6 +25,7 @@ from app.config import (
 )
 from app.db import get_db, utcnow
 from app.hooks import assign_hooks_for_listing
+from app.images import collect_photo_urls, listing_has_images, sync_listing_images
 
 CAPACITY_LB_RE = re.compile(
     r"(?P<n>\d{1,2}(?:[, ]\d{3})|\d{4,5})\s*(?:lb|lbs|pound|#)\b",
@@ -247,6 +248,7 @@ def normalize_search_item(item: dict[str, Any], watch_category: str) -> dict[str
         "auction_end_utc": item.get("assetAuctionEndDateUtc"),
         "status": "ended" if item.get("isSoldAuction") else "active",
         "photo_url": photo_url(item.get("photo")),
+        "photo_urls": collect_photo_urls(item.get("photo")),
         "minutes_remaining": parse_time_remaining(item.get("timeRemaining")),
     }
 
@@ -390,6 +392,11 @@ def refresh_description(client: GovDealsClient, record: dict[str, Any]) -> dict[
     record["location_state"] = detail.get("state") or record.get("location_state")
     if not record.get("auction_end_utc") and detail.get("assetAuctionEndDate"):
         record["auction_end"] = detail.get("assetAuctionEndDate")
+    record["photo_urls"] = collect_photo_urls(
+        record.get("photo_urls"),
+        record.get("photo_url"),
+        detail.get("assetPhotos"),
+    )
     return record
 
 
@@ -419,7 +426,10 @@ def ingest_items(
             """,
             (record["asset_id"], record["account_id"], record.get("auction_id")),
         ).fetchone()
-        if existing is None or not existing["description"]:
+        needs_detail = existing is None or not existing["description"]
+        if existing is not None and not listing_has_images(conn, existing["id"]):
+            needs_detail = True
+        if needs_detail:
             record = refresh_description(client, record)
             if spec["require_fivek"] and not is_fivek_forklift(
                 record["title"], record.get("description") or ""
@@ -428,6 +438,13 @@ def ingest_items(
 
         seen_keys.add(key)
         listing_id, _created = upsert_listing(conn, record, source="scan")
+        sync_listing_images(
+            client,
+            conn,
+            listing_id,
+            collect_photo_urls(record.get("photo_urls"), record.get("photo_url")),
+        )
+        conn.commit()
         upserted += 1
         hooks_assigned += assign_hooks_for_listing(conn, listing_id)
     return upserted, hooks_assigned
@@ -461,6 +478,7 @@ def scrape_once() -> dict[str, Any]:
 
             found = len(seen_keys)
             mark_missing_ended(conn, seen_keys)
+            backfill_missing_images(conn, client)
             conn.execute(
                 """
                 INSERT INTO scrape_runs (
@@ -492,6 +510,33 @@ def scrape_once() -> dict[str, Any]:
         "hooks_assigned": hooks_assigned,
         "error": error,
     }
+
+
+def backfill_missing_images(conn, client: GovDealsClient) -> None:
+    rows = conn.execute(
+        """
+        SELECT l.id, l.asset_id, l.account_id, l.photo_url
+        FROM listings l
+        WHERE NOT EXISTS (
+            SELECT 1 FROM listing_images i WHERE i.listing_id = l.id
+        )
+        """
+    ).fetchall()
+    for row in rows:
+        record = {
+            "asset_id": row["asset_id"],
+            "account_id": row["account_id"],
+            "photo_url": row["photo_url"],
+            "photo_urls": collect_photo_urls(row["photo_url"]),
+        }
+        record = refresh_description(client, record)
+        sync_listing_images(
+            client,
+            conn,
+            row["id"],
+            collect_photo_urls(record.get("photo_urls"), record.get("photo_url")),
+        )
+        conn.commit()
 
 
 def mark_missing_ended(conn, seen_keys: set[tuple[int, int, Any]]) -> None:

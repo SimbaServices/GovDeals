@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
+IMAGE_DIR = Path(os.environ.get("GOVDEALS_IMAGE_DIR", DATA_DIR / "images"))
 DB_PATH = Path(os.environ.get("GOVDEALS_DB", DATA_DIR / "govdeals.db"))
 
 # Anonymous storefront keys shipped by www.govdeals.com (same values the
@@ -33,6 +34,8 @@ CLOSEOUT_MINUTES = float(os.environ.get("GOVDEALS_CLOSEOUT_MINUTES", "15"))
 
 REQUEST_PAUSE_SECONDS = float(os.environ.get("GOVDEALS_REQUEST_PAUSE", "0.45"))
 DETAIL_PAUSE_SECONDS = float(os.environ.get("GOVDEALS_DETAIL_PAUSE", "0.55"))
+IMAGE_PAUSE_SECONDS = float(os.environ.get("GOVDEALS_IMAGE_PAUSE", "0.25"))
+ASSET_CDN = "https://webassets.lqdt1.com/assets"
 PAGE_SIZE = 120
 
 # Hooks in the final 2 hours, then a tighter countdown through close.

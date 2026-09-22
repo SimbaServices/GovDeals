@@ -66,8 +66,18 @@
       {% for listing in listings %}
       <tr class="{% if listing.in_final_window %}hot{% endif %} {% if listing.status == 'ended' %}ended{% endif %}">
         <td>
-          <a href="/listing/{{ listing.id }}">{{ listing.title }}</a>
-          <div class="sub">{{ listing.year or '' }} {{ listing.make or '' }} {{ listing.model or '' }} · {{ listing.location_city or '' }} {{ listing.location_state or '' }}</div>
+          <div class="item-cell">
+            {% if listing.thumb %}
+            <a class="thumb" href="{{ listing.thumb }}" target="_blank" rel="noopener noreferrer" title="Open listing photo">
+              <img src="{{ listing.thumb }}" alt="{{ listing.title }}">
+            </a>
+            {% endif %}
+            <div>
+              <a href="{{ listing.url }}" target="_blank" rel="noopener noreferrer">{{ listing.title }}</a>
+              <div class="sub">{{ listing.year or '' }} {{ listing.make or '' }} {{ listing.model or '' }} · {{ listing.location_city or '' }} {{ listing.location_state or '' }}</div>
+              <a class="sub" href="/listing/{{ listing.id }}">Price history</a>
+            </div>
+          </div>
         </td>
         <td>{{ 'Skid steer' if listing.watch_category == 'skid_steer' else '5k forklift' }}</td>
         <td class="money">
