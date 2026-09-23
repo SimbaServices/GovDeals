@@ -22,6 +22,8 @@ python run.py serve
 
 Then open http://127.0.0.1:8765
 
+On the shared host the app binds `127.0.0.1:8765` only. The single public access point is https://gd.simba.services/.
+
 | Command | Purpose |
 | --- | --- |
 | `python run.py serve` | Dashboard plus scheduler (default) |

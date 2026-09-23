@@ -12,7 +12,11 @@
 # If you are copying files instead, rsync the project to /opt/govdeals
 # then run: sudo /usr/local/sbin/govdeals-bootstrap.sh
 #
-# Dashboard: https://<server-ip>
+# Standalone boot still serves this app on 80/443.
+# The shared production host (95.216.155.122) is different: CRM owns
+# crm.simba.services on 80/443. This UI has one public access point:
+# https://gd.simba.services/
+# Dashboard: https://gd.simba.services/
 # Nginx redirects port 80 to 443. Let's Encrypt issues a short-lived
 # certificate for the public IP and renews it twice a day.
 # A subdomain still needs its own name on the certificate after DNS points here.
