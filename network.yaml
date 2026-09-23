@@ -1,0 +1,29 @@
+# SimbaServices remote-host inventory. Schema: see SimbaServices/Org_Info README.
+schema: 1
+repo: GovDeals
+name: GovDeals
+id: govdeals
+live: true
+order: 20
+host: shared
+public:
+  - name: gd.simba.services
+    url: https://gd.simba.services/
+    edge: Cloudflare :443 → nginx
+    health: https://gd.simba.services/
+process:
+  name: govdeals.service
+  bind: 127.0.0.1:8765
+  listen_public: false
+store: SQLite /opt/govdeals/data/govdeals.db
+edge_steps:
+  - title: nginx :80 :443
+    detail: gd.simba.services only
+  - title: govdeals.service
+    detail: 127.0.0.1:8765
+  - title: SQLite
+    detail: govdeals.db
+outbound:
+  - to: www.govdeals.com
+    what: Auction catalog every 4 hours. Hook poll every 30 seconds.
+notes: Single public access point is https://gd.simba.services/. App port stays on localhost.
