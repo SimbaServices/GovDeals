@@ -7,7 +7,7 @@
   2:00, 1:30, 1:00, 0:30, 0:15, 0:05, 0:01, and auction close. Each hook records that lot's live bid.
 </p>
 
-<form class="filters" method="get">
+<form class="filters" method="get" action="{{ public_path('/hooks') }}">
   <label>
     Status
     <select name="hook_status" onchange="this.form.submit()">
@@ -39,9 +39,9 @@
           <a href="{{ hook.url }}" target="_blank" rel="noopener noreferrer">{{ hook.title }}</a>
           <div class="sub">{{ 'Skid steer' if hook.watch_category == 'skid_steer' else '5k forklift' }}</div>
           <div class="item-links">
-            <a class="sub" href="/listing/{{ hook.listing_id }}">Price history</a>
+            <a class="sub" href="{{ public_path('/listing/' ~ hook.listing_id) }}">Price history</a>
             {% if hook.images %}
-            <a class="photos-link" href="#photos" data-slideshow="{{ hook.images | map(attribute='url') | list | tojson | forceescape }}" data-slideshow-title="{{ hook.title | e }}">Photos ({{ hook.images|length }})</a>
+            <a class="photos-link" href="#photos" data-slideshow="{{ hook.images | with_public_prefix | map(attribute='url') | list | tojson | forceescape }}" data-slideshow-title="{{ hook.title | e }}">Photos ({{ hook.images|length }})</a>
             {% endif %}
           </div>
         </td>

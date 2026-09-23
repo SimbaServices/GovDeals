@@ -2,7 +2,7 @@
 {% block title %}{{ listing.title }} · GovDeals Tracker{% endblock %}
 {% block content %}
 <article class="detail">
-  <p class="crumb"><a href="/">Listings</a> / {{ listing.title }}</p>
+  <p class="crumb"><a href="{{ public_path('/') }}">Listings</a> / {{ listing.title }}</p>
   <header class="detail-head">
     <div>
       <h1><a href="{{ listing.url }}" target="_blank" rel="noopener noreferrer">{{ listing.title }}</a></h1>
@@ -25,7 +25,7 @@
   <p>
     <a class="external" href="{{ listing.url }}" target="_blank" rel="noopener noreferrer">Open on GovDeals</a>
     {% if listing.images %}
-    <a class="external photos-link" href="#photos" data-slideshow="{{ listing.images | map(attribute='url') | list | tojson | forceescape }}" data-slideshow-title="{{ listing.title | e }}">Photos ({{ listing.images|length }})</a>
+    <a class="external photos-link" href="#photos" data-slideshow="{{ listing.images | with_public_prefix | map(attribute='url') | list | tojson | forceescape }}" data-slideshow-title="{{ listing.title | e }}">Photos ({{ listing.images|length }})</a>
     {% endif %}
   </p>
 

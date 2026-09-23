@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}GovDeals Tracker{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css?v=4">
+  <link rel="stylesheet" href="{{ public_path('/static/style.css') }}?v=4">
   <style>
     .slideshow {
       position: fixed !important;
@@ -24,19 +24,19 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="/">GovDeals Tracker</a>
+    <a class="brand" href="{{ public_path('/') }}">GovDeals Tracker</a>
     <nav>
-      <a href="/">Listings</a>
-      <a href="/hooks">Auction hooks</a>
+      <a href="{{ public_path('/') }}">Listings</a>
+      <a href="{{ public_path('/hooks') }}">Auction hooks</a>
     </nav>
     <div class="actions">
-      <form method="post" action="/actions/scrape">
+      <form method="post" action="{{ public_path('/actions/scrape') }}">
         <button type="submit">Scan now</button>
       </form>
-      <form method="post" action="/actions/hooks">
+      <form method="post" action="{{ public_path('/actions/hooks') }}">
         <button type="submit" class="ghost">Fire due hooks</button>
       </form>
-      <a class="button" href="/download/database">Download database</a>
+      <a class="button" href="{{ public_path('/download/database') }}">Download database</a>
     </div>
   </header>
   <main>
@@ -59,6 +59,6 @@
       <p class="slideshow-caption" data-slideshow-caption></p>
     </div>
   </div>
-  <script src="/static/slideshow.js?v=4"></script>
+  <script src="{{ public_path('/static/slideshow.js') }}?v=4"></script>
 </body>
 </html>

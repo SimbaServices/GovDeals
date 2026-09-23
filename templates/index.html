@@ -31,7 +31,7 @@
   {% endif %}
 </p>
 
-<form class="filters" method="get">
+<form class="filters" method="get" action="{{ public_path('/') }}">
   <label>
     Category
     <select name="category" onchange="this.form.submit()">
@@ -69,9 +69,9 @@
           <a href="{{ listing.url }}" target="_blank" rel="noopener noreferrer">{{ listing.title }}</a>
           <div class="sub">{{ listing.year or '' }} {{ listing.make or '' }} {{ listing.model or '' }} · {{ listing.location_city or '' }} {{ listing.location_state or '' }}</div>
           <div class="item-links">
-            <a class="sub" href="/listing/{{ listing.id }}">Price history</a>
+            <a class="sub" href="{{ public_path('/listing/' ~ listing.id) }}">Price history</a>
             {% if listing.images %}
-            <a class="photos-link" href="#photos" data-slideshow="{{ listing.images | map(attribute='url') | list | tojson | forceescape }}" data-slideshow-title="{{ listing.title | e }}">Photos ({{ listing.images|length }})</a>
+            <a class="photos-link" href="#photos" data-slideshow="{{ listing.images | with_public_prefix | map(attribute='url') | list | tojson | forceescape }}" data-slideshow-title="{{ listing.title | e }}">Photos ({{ listing.images|length }})</a>
             {% endif %}
           </div>
         </td>

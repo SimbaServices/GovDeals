@@ -6,7 +6,7 @@ import tempfile
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.background import BackgroundTask
@@ -15,10 +15,56 @@ from app.config import HOST, IMAGE_DIR, PORT, ROOT, SCRAPE_INTERVAL_HOURS
 from app.db import get_db, init_db, rows_to_dicts
 from app.hooks import assign_hooks_for_active, fire_due_hooks
 from app.images import image_path, images_by_listing, images_for_listing
+from app.prefix import (
+    prefix_from_header,
+    public_path,
+    reset_current_prefix,
+    set_current_prefix,
+    with_public_prefix,
+)
 from app.scheduler import start_scheduler
 from app.scraper import scrape_once
 
 templates = Jinja2Templates(directory=str(ROOT / "templates"))
+templates.env.globals["public_path"] = public_path
+templates.env.filters["with_public_prefix"] = with_public_prefix
+
+
+class ForwardedPrefixMiddleware:
+    """Honor X-Forwarded-Prefix if a reverse proxy mounts the app under a path."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") != "http":
+            await self.app(scope, receive, send)
+            return
+        prefix = ""
+        for key, value in scope.get("headers") or []:
+            if key.lower() == b"x-forwarded-prefix":
+                prefix = prefix_from_header(value.decode("latin1"))
+                break
+        token = set_current_prefix(prefix)
+
+        async def send_prefixed(message):
+            if prefix and message["type"] == "http.response.start":
+                headers = []
+                for key, value in message.get("headers") or []:
+                    if key.lower() == b"location":
+                        location = value.decode("latin1")
+                        if location.startswith("/") and not (
+                            location == prefix or location.startswith(prefix + "/")
+                        ):
+                            value = f"{prefix}{location}".encode("latin1")
+                    headers.append((key, value))
+                message = {**message, "headers": headers}
+            await send(message)
+
+        try:
+            await self.app(scope, receive, send_prefixed)
+        finally:
+            reset_current_prefix(token)
 
 
 def _minutes_left(end_utc: str | None) -> int | None:
@@ -47,6 +93,38 @@ def create_app(enable_scheduler: bool = True) -> FastAPI:
     app = FastAPI(title="GovDeals Equipment Tracker")
     IMAGE_DIR.mkdir(parents=True, exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(ROOT / "static")), name="static")
+
+    @app.exception_handler(404)
+    async def page_not_found(request: Request, _exc: Exception):
+        accept = (request.headers.get("accept") or "").lower()
+        if "text/html" in accept and "application/json" not in accept:
+            home = public_path("/")
+            page = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>404 Page not found</title>
+  <style>
+    body {{ margin: 0; min-height: 100vh; display: grid; place-items: center;
+           font-family: Georgia, "Times New Roman", serif; background: #f4f1ea; color: #1c1915; }}
+    main {{ text-align: center; padding: 2rem; }}
+    h1 {{ font-size: 4rem; margin: 0; letter-spacing: 0.04em; }}
+    p {{ margin: 0.75rem 0 0; font-size: 1.25rem; }}
+    a {{ color: inherit; }}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>404</h1>
+    <p>Page not found.</p>
+    <p><a href="{home}">GovDeals Tracker</a></p>
+  </main>
+</body>
+</html>
+"""
+            return HTMLResponse(page, status_code=404)
+        return JSONResponse({"detail": "Not Found"}, status_code=404)
 
     @app.on_event("startup")
     def _startup() -> None:
@@ -225,7 +303,7 @@ def create_app(enable_scheduler: bool = True) -> FastAPI:
             return HTMLResponse("Image not found", status_code=404)
         return FileResponse(path)
 
-    return app
+    return ForwardedPrefixMiddleware(app)
 
 
 app = create_app()
